@@ -30,3 +30,7 @@ uint32_t ota_crc32(const void *data, uint32_t length)
                                              (const uint8_t *)data,
                                              length));
 }
+
+
+
+

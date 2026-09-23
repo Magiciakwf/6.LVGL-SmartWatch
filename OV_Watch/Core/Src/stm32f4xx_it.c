@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "key.h"
 #include "power.h"
+#include "user_TasksInit.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,7 +67,6 @@ extern TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN EV */
 uint8_t HardInt_receive_str[25];
-volatile uint8_t HardInt_uart_flag=0;
 volatile uint8_t HardInt_key_flag=0;
 volatile uint8_t HardInt_mpu_flag=0;
 volatile uint8_t HardInt_Charg_flag=0;
@@ -203,13 +203,6 @@ void TIM1_UP_TIM10_IRQHandler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
-  if(__HAL_UART_GET_FLAG(&huart1,UART_FLAG_IDLE)!=RESET)
-  {
-    HardInt_uart_flag = 1;
-    __HAL_UART_CLEAR_FLAG(&huart1,UART_FLAG_IDLE);
-    HAL_UART_DMAStop(&huart1);
-    HAL_UART_Receive_DMA(&huart1, HardInt_receive_str, 25);
-  }
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
@@ -262,12 +255,50 @@ void DMA2_Stream7_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 
 /**
+  * @brief Called by HAL for an IDLE or full-buffer UART DMA receive event.
+  *        The completed frame is copied before DMA reuses its buffer.
+  */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+  BaseType_t HigherPriorityTaskWoken = pdFALSE;
+
+  if((huart->Instance == USART1) && (Size > 0U))
+  {
+    if(UartRxMessageBuffer != NULL)
+    {
+      (void)xMessageBufferSendFromISR(UartRxMessageBuffer,
+                                      HardInt_receive_str,
+                                      Size,
+                                      &HigherPriorityTaskWoken);
+    }
+
+    /* Normal-mode DMA stops at an IDLE/full-buffer event.  Re-arm it only
+       after xMessageBufferSendFromISR() has copied the completed frame. */
+    (void)HAL_UARTEx_ReceiveToIdle_DMA(&huart1,
+                                      HardInt_receive_str,
+                                      sizeof(HardInt_receive_str));
+    __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
+  }
+
+  portYIELD_FROM_ISR(HigherPriorityTaskWoken);
+}
+
+/**
   * @brief This function handles EXTI line0 interrupt.Key interrupt
   */
 void EXTI0_IRQHandler(void)
 {
+  BaseType_t HigherPriorityTaskWoken = pdFALSE;
+
   HardInt_key_flag = 1U;
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);//清除中断挂起标志位
+
+  if(KeyTaskHandle != NULL)
+  {
+    vTaskNotifyGiveFromISR((TaskHandle_t)KeyTaskHandle,
+                           &HigherPriorityTaskWoken);//任务通知
+  }
+  portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 
 /**
@@ -275,8 +306,17 @@ void EXTI0_IRQHandler(void)
   */
 void EXTI2_IRQHandler(void)
 {
+  BaseType_t HigherPriorityTaskWoken = pdFALSE;
+
   HardInt_Charg_flag = 1U;
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_2);
+
+  if(ChargPageEnterTaskHandle != NULL)
+  {
+    vTaskNotifyGiveFromISR((TaskHandle_t)ChargPageEnterTaskHandle,
+                           &HigherPriorityTaskWoken);
+  }
+  portYIELD_FROM_ISR(HigherPriorityTaskWoken);//挂起PendSV标志位,立即实现切换效果
 }
 
 /**
@@ -284,8 +324,17 @@ void EXTI2_IRQHandler(void)
   */
 void EXTI15_10_IRQHandler(void)
 {
+  BaseType_t HigherPriorityTaskWoken = pdFALSE;
+
   HardInt_mpu_flag = 1U;
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);
+
+  if(MPUCheckTaskHandle != NULL)
+  {
+    vTaskNotifyGiveFromISR((TaskHandle_t)MPUCheckTaskHandle,
+                           &HigherPriorityTaskWoken);
+  }
+  portYIELD_FROM_ISR(HigherPriorityTaskWoken);
 }
 
 /* USER CODE END 1 */

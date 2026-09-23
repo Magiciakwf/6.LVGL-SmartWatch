@@ -43,7 +43,6 @@
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 extern uint8_t HardInt_receive_str[25];
-extern volatile uint8_t HardInt_uart_flag;
 extern volatile uint8_t HardInt_key_flag;
 extern volatile uint8_t HardInt_mpu_flag;
 extern volatile uint8_t HardInt_Charg_flag;

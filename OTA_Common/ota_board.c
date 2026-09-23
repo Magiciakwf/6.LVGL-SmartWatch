@@ -345,3 +345,17 @@ int ota_board_init(void)
     w25_cs(1U);
     return ota_w25_init();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

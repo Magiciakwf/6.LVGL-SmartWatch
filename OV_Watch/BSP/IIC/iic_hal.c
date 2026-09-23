@@ -2,7 +2,7 @@
 #include "delay.h"
 
 /**
-  * @brief SDAÏßÊäÈëÄ£Ê½ÅäÖÃ
+  * @brief SDAï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½ï¿½ï¿½ï¿½ï¿½
   * @param None
   * @retval None
   */
@@ -18,7 +18,7 @@ void SDA_Input_Mode(iic_bus_t *bus)
 }
 
 /**
-  * @brief SDAÏßÊä³öÄ£Ê½ÅäÖÃ
+  * @brief SDAï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½ï¿½ï¿½ï¿½ï¿½
   * @param None
   * @retval None
   */
@@ -34,8 +34,8 @@ void SDA_Output_Mode(iic_bus_t *bus)
 }
 
 /**
-  * @brief SDAÏßÊä³öÒ»¸öÎ»
-  * @param val Êä³öµÄÊý¾Ý
+  * @brief SDAï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Î»
+  * @param val ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   * @retval None
   */
 void SDA_Output(iic_bus_t *bus, uint16_t val)
@@ -51,8 +51,8 @@ void SDA_Output(iic_bus_t *bus, uint16_t val)
 }
 
 /**
-  * @brief SCLÏßÊä³öÒ»¸öÎ»
-  * @param val Êä³öµÄÊý¾Ý
+  * @brief SCLï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Î»
+  * @param val ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   * @retval None
   */
 void SCL_Output(iic_bus_t *bus, uint16_t val)
@@ -68,9 +68,9 @@ void SCL_Output(iic_bus_t *bus, uint16_t val)
 }
 
 /**
-  * @brief SDAÊäÈëÒ»Î»
+  * @brief SDAï¿½ï¿½ï¿½ï¿½Ò»Î»
   * @param None
-  * @retval GPIO¶ÁÈëÒ»Î»
+  * @retval GPIOï¿½ï¿½ï¿½ï¿½Ò»Î»
   */
 uint8_t SDA_Input(iic_bus_t *bus)
 {
@@ -82,7 +82,7 @@ uint8_t SDA_Input(iic_bus_t *bus)
 }
 
 /**
-  * @brief IICÆðÊ¼ÐÅºÅ
+  * @brief IICï¿½ï¿½Ê¼ï¿½Åºï¿½
   * @param None
   * @retval None
   */
@@ -97,10 +97,18 @@ void IICStart(iic_bus_t *bus)
 		delay_us(1);
     SCL_Output(bus,0);
 		delay_us(1);
+    // SCL_Output(bus,1);
+    // delay_us(2);
+    // SDA_Output(bus,1);
+    // delay_us(1);
+    // SDA_Output(bus,0);
+    // delay_us(1);
+    // SCL_Output(bus,1);
+    // delay_us(1);
 }
 
 /**
-  * @brief IIC½áÊøÐÅºÅ
+  * @brief IICï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½
   * @param None
   * @retval None
   */
@@ -118,7 +126,7 @@ void IICStop(iic_bus_t *bus)
 }
 
 /**
-  * @brief IICµÈ´ýÈ·ÈÏÐÅºÅ
+  * @brief IICï¿½È´ï¿½È·ï¿½ï¿½ï¿½Åºï¿½
   * @param None
   * @retval None
   */
@@ -145,7 +153,7 @@ unsigned char IICWaitAck(iic_bus_t *bus)
 }
 
 /**
-  * @brief IIC·¢ËÍÈ·ÈÏÐÅºÅ
+  * @brief IICï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Åºï¿½
   * @param None
   * @retval None
   */
@@ -161,7 +169,7 @@ void IICSendAck(iic_bus_t *bus)
 }
 
 /**
-  * @brief IIC·¢ËÍ·ÇÈ·ÈÏÐÅºÅ
+  * @brief IICï¿½ï¿½ï¿½Í·ï¿½È·ï¿½ï¿½ï¿½Åºï¿½
   * @param None
   * @retval None
   */
@@ -177,8 +185,8 @@ void IICSendNotAck(iic_bus_t *bus)
 }
 
 /**
-  * @brief IIC·¢ËÍÒ»¸ö×Ö½Ú
-  * @param cSendByte ÐèÒª·¢ËÍµÄ×Ö½Ú
+  * @brief IICï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö½ï¿½
+  * @param cSendByte ï¿½ï¿½Òªï¿½ï¿½ï¿½Íµï¿½ï¿½Ö½ï¿½
   * @retval None
   */
 void IICSendByte(iic_bus_t *bus,unsigned char cSendByte)
@@ -200,9 +208,9 @@ void IICSendByte(iic_bus_t *bus,unsigned char cSendByte)
 }
 
 /**
-  * @brief IIC½ÓÊÕÒ»¸ö×Ö½Ú
+  * @brief IICï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö½ï¿½
   * @param None
-  * @retval ½ÓÊÕµ½µÄ×Ö½Ú
+  * @retval ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Ö½ï¿½
   */
 unsigned char IICReceiveByte(iic_bus_t *bus)
 {
@@ -228,7 +236,7 @@ uint8_t IIC_Write_One_Byte(iic_bus_t *bus, uint8_t daddr,uint8_t reg,uint8_t dat
   IICStart(bus);  
 	
 	IICSendByte(bus,daddr<<1);	    
-	if(IICWaitAck(bus))	//µÈ´ýÓ¦´ð
+	if(IICWaitAck(bus))	//ï¿½È´ï¿½Ó¦ï¿½ï¿½
 	{
 		IICStop(bus);		 
 		return 1;		
@@ -313,7 +321,7 @@ uint8_t IIC_Read_Multi_Byte(iic_bus_t *bus, uint8_t daddr, uint8_t reg, uint8_t 
 
 
 //
-void IICInit(iic_bus_t *bus)//Ñ§Ï°¸Ã³õÊ¼»¯µÄÐ´·¨
+void IICInit(iic_bus_t *bus)//Ñ§Ï°ï¿½Ã³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½
 {
     GPIO_InitTypeDef GPIO_InitStructure = {0};
 

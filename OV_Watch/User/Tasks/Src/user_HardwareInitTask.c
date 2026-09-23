@@ -54,8 +54,11 @@ void HardwareInitTask(void *argument)
      * key, charge-state or IMU EXTI instead of a wasteful 1-second timer. */
 
     // usart start
-    HAL_UART_Receive_DMA(&huart1,(uint8_t*)HardInt_receive_str,25);
-    __HAL_UART_ENABLE_IT(&huart1,UART_IT_IDLE);
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart1,
+                                (uint8_t *)HardInt_receive_str,
+                                sizeof(HardInt_receive_str));
+    /* A half-transfer is not a protocol frame; only IDLE/full events matter. */
+    __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
 
     // PWM Start
     HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_3);//屏幕无法显示的问题根源
@@ -123,7 +126,7 @@ void HardwareInitTask(void *argument)
 
 
     // EEPROM user data: load the newest valid A/B record and restore settings.
-    EEPROM_Init();
+    EEPROM_Init();//初始化IIC引脚
     {
       RTC_TimeTypeDef nowtime;
       RTC_DateTypeDef nowdate;
@@ -207,3 +210,7 @@ void HardwareInitTask(void *argument)
 		osDelay(500);
 	}
 }
+
+
+
+int *p[4]

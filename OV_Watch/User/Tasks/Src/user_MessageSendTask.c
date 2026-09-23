@@ -96,23 +96,31 @@ uint8_t TimeFormat_Get(uint8_t * str)
   */
 void MessageSendTask(void *argument)
 {
+	uint8_t ReceiveFrame[sizeof(HardInt_receive_str) + 1U];
+	size_t ReceiveLength;
+
 	while(1)
 	{
-		if(HardInt_uart_flag)
+		/* One message corresponds to one DMA reception terminated by UART IDLE. */
+		ReceiveLength = xMessageBufferReceive(UartRxMessageBuffer,
+										  ReceiveFrame,
+										  sizeof(ReceiveFrame) - 1U,
+										  portMAX_DELAY);
+		if(ReceiveLength > 0U)
 		{
-			HardInt_uart_flag = 0;
+			ReceiveFrame[ReceiveLength] = '\0';
 			uint8_t IdleBreakstr = 0;
-			osMessageQueuePut(IdleBreak_MessageQueue,&IdleBreakstr,NULL,1);
-			printf("RecStr:%s\r\n",HardInt_receive_str);
-			if(!strcmp(HardInt_receive_str,"OV"))
+			osMessageQueuePut(IdleBreak_MessageQueue, &IdleBreakstr, 0U, 1U);
+			printf("RecStr:%s\r\n", ReceiveFrame);
+			if(!strcmp((char *)ReceiveFrame,"OV"))
 			{
 				printf("OK\r\n");
 			}
-			else if(!strcmp(HardInt_receive_str,"OV+VERSION"))
+			else if(!strcmp((char *)ReceiveFrame,"OV+VERSION"))
 			{
 				printf("VERSION=V%d.%d.%d\r\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 			}
-			else if(!strcmp(HardInt_receive_str,"OV+SEND"))
+			else if(!strcmp((char *)ReceiveFrame,"OV+SEND"))
 			{
 				HAL_RTC_GetTime(&hrtc,&(BLEMessage.nowtime),RTC_FORMAT_BIN);
 				HAL_RTC_GetDate(&hrtc,&BLEMessage.nowdate,RTC_FORMAT_BIN);
@@ -124,18 +132,16 @@ void MessageSendTask(void *argument)
 				printf("Step today:%d\r\n",BLEMessage.stepNum);
 			}
 			//set time//OV+ST=20230629125555
-			else if(strlen(HardInt_receive_str)==20)
+			else if(strlen((char *)ReceiveFrame)==20U)
 			{
 				uint8_t cmd[10];
 				memset(cmd,0,sizeof(cmd));
-				StrCMD_Get(HardInt_receive_str,cmd);
+				StrCMD_Get(ReceiveFrame,cmd);
 				if(ui_APPSy_EN && !strcmp(cmd,"OV+ST"))
 				{
-					TimeFormat_Get(HardInt_receive_str);
+					TimeFormat_Get(ReceiveFrame);
 				}
 			}
-			memset(HardInt_receive_str,0,sizeof(HardInt_receive_str));
 		}
-		osDelay(1000);
 	}
 }

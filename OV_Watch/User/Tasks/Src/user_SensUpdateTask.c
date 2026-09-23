@@ -51,6 +51,9 @@ void MPUCheckTask(void *argument)
 {
 	while(1)
 	{
+		/* Motion processing is event driven by EXTI15_10. */
+		(void)ulTaskNotifyTake(pdTRUE, portMAX_DELAY);//任务通知阻塞
+
 		if(HWInterface.IMU.wrist_is_enabled)
 		{
 			if(MPU_isHorizontal())
@@ -74,7 +77,6 @@ void MPUCheckTask(void *argument)
 			}
 		}
 		HardInt_mpu_flag = 0U;
-		osDelay(300);
 	}
 }
 
@@ -124,6 +126,8 @@ void SensorDataUpdateTask(void *argument)
 {
 	uint8_t value_strbuf[6];
 	uint8_t IdleBreakstr=0;
+	TickType_t LastWakeTime = xTaskGetTickCount();
+	const TickType_t UpdatePeriod = pdMS_TO_TICKS(500U);
 	while(1)
 	{
 		// Update the sens data showed in Home
@@ -172,6 +176,7 @@ void SensorDataUpdateTask(void *argument)
 
 
 		/* Optional SPO2, environmental, compass and barometer updates are disabled. */
-		osDelay(500);
+		/* Use an absolute deadline so execution time does not accumulate drift. */
+		vTaskDelayUntil(&LastWakeTime, UpdatePeriod);
 	}
 }

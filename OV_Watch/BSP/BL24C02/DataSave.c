@@ -161,7 +161,8 @@ static uint8_t record_decode(const uint8_t record[USER_DATA_RECORD_SIZE],
 						  EEPROM_UserData_t *data, uint32_t *sequence)
 {
 	uint8_t flags;
-
+	//Magic_num = USR1
+	//CRC16校验:计算0-20字节的CRC16
 	if(record[0] != USER_DATA_MAGIC_0 ||
 	   record[1] != USER_DATA_MAGIC_1 ||
 	   record[2] != USER_DATA_MAGIC_2 ||
@@ -173,9 +174,10 @@ static uint8_t record_decode(const uint8_t record[USER_DATA_RECORD_SIZE],
 		return 0U;
 
 	flags = record[RECORD_OFFSET_FLAGS];
+	//检测未知标志位
 	if((flags & (uint8_t)~USER_DATA_FLAG_MASK) != 0U)
 		return 0U;
-
+	//解析抬腕，app同步标志位，解析年月日和步数，序列号
 	data->wrist_enabled = (flags & USER_DATA_FLAG_WRIST) ? 1U : 0U;
 	data->app_sync_enabled = (flags & USER_DATA_FLAG_APP_SYNC) ? 1U : 0U;
 	data->year = record[RECORD_OFFSET_YEAR];
@@ -237,18 +239,20 @@ void EEPROM_Init(void)
 uint8_t EEPROM_UserDataLoad(EEPROM_UserData_t *data,
 								uint8_t now_year, uint8_t now_month, uint8_t now_day)
 {
-	uint8_t first_record[USER_DATA_RECORD_SIZE];
-	uint8_t second_record[USER_DATA_RECORD_SIZE];
-	EEPROM_UserData_t first_data;
-	EEPROM_UserData_t second_data;
-	uint32_t first_sequence = 0U;
-	uint32_t second_sequence = 0U;
-	uint8_t first_valid;
-	uint8_t second_valid;
+
+	uint8_t first_record[USER_DATA_RECORD_SIZE];//读取A槽原始数据
+	uint8_t second_record[USER_DATA_RECORD_SIZE];//读取B槽原始数据
+
+	EEPROM_UserData_t first_data;//A槽解码后的业务数据
+	EEPROM_UserData_t second_data;//B槽解码后的业务数据
+	uint32_t first_sequence = 0U;//A槽记录的序列号
+	uint32_t second_sequence = 0U;//B槽记录的序列号
+	uint8_t first_valid;//A槽是否读取和校验成功
+	uint8_t second_valid;//B槽是否读取和校验成功
 
 	if(data == NULL || !date_valid(now_year, now_month, now_day))
 		return 1U;
-
+	//record_decode:校验，解析数据到结构体里
 	first_valid = (uint8_t)(!BL24C02_ReadSafe(USER_DATA_SLOT_A_ADDRESS,
 											 USER_DATA_RECORD_SIZE, first_record) &&
 							  record_decode(first_record, &first_data, &first_sequence));
@@ -258,6 +262,7 @@ uint8_t EEPROM_UserDataLoad(EEPROM_UserData_t *data,
 
 	if(first_valid || second_valid)
 	{
+		//判断选择A槽还是B槽
 		if(first_valid && (!second_valid || !sequence_newer(second_sequence, first_sequence)))
 		{
 			*data = first_data;
@@ -289,6 +294,10 @@ uint8_t EEPROM_UserDataLoad(EEPROM_UserData_t *data,
 	return EEPROM_UserDataSave(data);
 }
 
+
+//给备用槽数据+1
+//重新写入CRC
+//最后写commit标志
 uint8_t EEPROM_UserDataSave(const EEPROM_UserData_t *data)
 {
 	uint8_t record[USER_DATA_RECORD_SIZE];

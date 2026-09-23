@@ -50,9 +50,12 @@ static uint8_t LowPower_IsUserWakeEvent(void)
 static void LowPower_EnterStopMode(void)
 {
 	/* TIM1 is the HAL time base; SysTick is the FreeRTOS time base. */
+	//暂停两套系统时钟
 	HAL_SuspendTick();
 	CLEAR_BIT(SysTick->CTRL, SysTick_CTRL_TICKINT_Msk);
+	//清除遗留的Systick挂起异常
 	SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;
+	//清除定时器1的更新标志
 	__HAL_TIM_CLEAR_FLAG(&htim1, TIM_FLAG_UPDATE);
 
 	/* Flash power-down plus the low-power regulator minimizes STOP current. */
@@ -64,14 +67,17 @@ static void LowPower_EnterStopMode(void)
 	__disable_irq();
 	if(!LowPower_IsUserWakeEvent() && (HardInt_mpu_flag == 0U))
 	{
+		//进入STOP模式
 		HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
 	}
 	__enable_irq();
 	__ISB();
 
+	//恢复PLL，HAL_TICK,SysTick
 	/* HAL clock recovery uses HAL_GetTick() for oscillator timeouts. */
 	HAL_ResumeTick();
 	/* STOP switches SYSCLK back to HSI. Restore the 100 MHz run clock. */
+
 	SystemClock_Config();
 	SET_BIT(SysTick->CTRL, SysTick_CTRL_TICKINT_Msk);
 }
@@ -97,7 +103,9 @@ void IdleEnterTask(void *argument)
 		//resume light if light got dark and idle state breaked by key pressing or screen touching
 		if(osMessageQueueGet(IdleBreak_MessageQueue,&IdleBreakstr,NULL,1)==osOK)
 		{
+			taskENTER_CRITICAL();
 			IdleTimerCount = 0;
+			taskEXIT_CRITICAL();
 			LCD_Set_Light(ui_LightSliderValue);
 		}
 		osDelay(10);
@@ -120,11 +128,12 @@ void StopEnterTask(void *argument)
 			uint8_t WakeRequested = 0U;
 			uint8_t ImuWasPutToSleep = 0U;
 
+			taskENTER_CRITICAL();
 			IdleTimerCount = 0;
+			taskEXIT_CRITICAL();
 			LowPower_ArmWakeSources();
 
 			/* Stop DMA/USART through the public HAL API so handle state remains valid. */
-			HardInt_uart_flag = 0U;
 			HardInt_receive_str[0] = 0U;
 			(void)HAL_UART_DeInit(&huart1);
 
@@ -168,7 +177,7 @@ void StopEnterTask(void *argument)
 						HWInterface.IMU.wrist_state = WRIST_DOWN;
 					}
 				}
-
+				//LowPower_IsUserWakeEvent为用户唤醒事件
 				WakeRequested = (uint8_t)(LowPower_IsUserWakeEvent() || WristWake);
 				HardInt_key_flag = 0U;
 				HardInt_mpu_flag = 0U;
@@ -178,9 +187,10 @@ void StopEnterTask(void *argument)
 
 			/* Restore each peripheral through the same initialization path as boot. */
 			MX_USART1_UART_Init();
-			(void)HAL_UART_Receive_DMA(&huart1, (uint8_t *)HardInt_receive_str,
-									 sizeof(HardInt_receive_str));
-			__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
+			(void)HAL_UARTEx_ReceiveToIdle_DMA(&huart1,
+									   (uint8_t *)HardInt_receive_str,
+									   sizeof(HardInt_receive_str));
+			__HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
 
 			if(ImuWasPutToSleep != 0U)
 			{
@@ -197,6 +207,7 @@ void StopEnterTask(void *argument)
 			if(ChargeCheck())
 			{
 				HardInt_Charg_flag = 1U;
+				xTaskNotifyGive((TaskHandle_t)ChargPageEnterTaskHandle);
 			}
 #endif
 
@@ -211,7 +222,10 @@ void StopEnterTask(void *argument)
 
 void IdleTimerCallback(void *argument)
 {
+	//临界区保护防止并发修改
+	taskENTER_CRITICAL();
 	IdleTimerCount+=1;
+	taskEXIT_CRITICAL();
 	//make sure the LightOffTime<TurnOffTime
 	if(IdleTimerCount == (ui_LTimeValue*10))
 	{

@@ -24,10 +24,12 @@
 
 
 /* Private define ------------------------------------------------------------*/
-
+#define UART_RX_MESSAGE_BUFFER_SIZE 128U
 
 /* Private variables ---------------------------------------------------------*/
-
+static StaticMessageBuffer_t UartRxMessageBufferControl;
+static uint8_t UartRxMessageBufferStorage[UART_RX_MESSAGE_BUFFER_SIZE];
+MessageBufferHandle_t UartRxMessageBuffer;
 
 /* Timers --------------------------------------------------------------------*/
 osTimerId_t IdleTimerHandle;
@@ -179,6 +181,14 @@ void WDOGFeedTask(void *argument);
 	osTimerStart(IdleTimerHandle,100);//100ms
 
   /* add queues, ... */
+	/* A message buffer is a frame-preserving specialization of a FreeRTOS
+	 * stream buffer.  Each UART IDLE event is delivered as one complete frame. */
+	UartRxMessageBuffer = xMessageBufferCreateStatic(
+		UART_RX_MESSAGE_BUFFER_SIZE,
+		UartRxMessageBufferStorage,
+		&UartRxMessageBufferControl);
+	configASSERT(UartRxMessageBuffer != NULL);
+
 	Key_MessageQueue  = osMessageQueueNew(1, 1, NULL);
 	Idle_MessageQueue = osMessageQueueNew(1, 1, NULL);
 	Stop_MessageQueue = osMessageQueueNew(1, 1, NULL);
